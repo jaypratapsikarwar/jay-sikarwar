@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jay Sikarwar — Video Editor</title>
+<meta name="description" content="Jay Sikarwar — Video Editor based in India. Short-form, talking-head, and brand video editing, motion graphics, and color grading.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%2311151b'/%3E%3Ctext x='50' y='68' font-family='Georgia,serif' font-size='58' font-weight='700' fill='%233f8ae0' text-anchor='middle'%3EJ%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#11151b;
+    --bg-alt:#161b22;
+    --bg-card:#1a2029;
+    --text:#eef1f4;
+    --text-dim:#94a0ac;
+    --text-faint:#57626d;
+    --amber:#3f8ae0;
+    --teal:#4f8fa8;
+    --line:rgba(238,241,244,0.1);
+    --line-strong:rgba(238,241,244,0.18);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Work Sans', sans-serif;
+    font-weight:300;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+
+  ::selection{background:var(--amber); color:#11151b;}
+
+  a{color:inherit; text-decoration:none;}
+
+  .mono{font-family:'JetBrains Mono', monospace;}
+
+  /* grain texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:9999;
+    mix-blend-mode:overlay;
+  }
+
+  /* ===== Playhead scroll bar ===== */
+  .playhead-track{
+    position:fixed; top:0; left:0; right:0; height:3px;
+    background:var(--bg-alt);
+    z-index:1000;
+    border-bottom:1px solid var(--line);
+  }
+  .playhead-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg, var(--teal), var(--amber));
+    transition:width 0.05s linear;
+  }
+  .playhead-readout{
+    position:fixed; top:8px; right:16px;
+    font-size:0.65rem;
+    letter-spacing:0.05em;
+    color:var(--text-dim);
+    z-index:1000;
+    background:var(--bg);
+    padding:2px 8px;
+    border:1px solid var(--line);
+  }
+
+  /* ===== Nav ===== */
+  header{
+    position:sticky; top:0; z-index:900;
+    background:rgba(17,21,27,0.88);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:22px 6vw 18px;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:3px;
+  }
+  .logo{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size:1.05rem;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+  }
+  .logo span{color:var(--amber);}
+  nav{display:flex; gap:34px;}
+  nav a{
+    font-size:0.78rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    transition:color 0.2s;
+    position:relative;
+    padding:4px 0;
+  }
+  nav a:hover, nav a:focus-visible{color:var(--text);}
+  nav a::after{
+    content:"";
+    position:absolute; bottom:0; left:0; width:0; height:1px;
+    background:var(--amber);
+    transition:width 0.25s;
+  }
+  nav a:hover::after{width:100%;}
+  @media (max-width:720px){ nav{gap:18px;} nav a{font-size:0.68rem;} }
+
+  section{padding:120px 6vw; position:relative;}
+  @media (max-width:720px){ section{padding:80px 6vw;} }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    color:var(--amber);
+    letter-spacing:0.05em;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:22px; height:1px;
+    background:var(--amber);
+  }
+
+  h2{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size:clamp(1.8rem, 4vw, 2.6rem);
+    letter-spacing:0.01em;
+    text-transform:uppercase;
+    margin-bottom:48px;
+  }
+
+  /* ===== Hero ===== */
+  .hero{
+    min-height:92vh;
+    display:grid;
+    grid-template-columns:1.3fr 0.9fr;
+    align-items:center;
+    gap:40px;
+    padding-top:60px;
+    border-bottom:1px solid var(--line);
+  }
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr; min-height:auto; padding-top:40px;}
+    .hero-frame{order:-1; max-width:300px; margin:0 auto 30px;}
+  }
+  .hero-frame{
+    position:relative;
+    aspect-ratio:4/5;
+    border:1px solid var(--line-strong);
+    padding:14px;
+  }
+  .hero-frame::before, .hero-frame::after{
+    content:"";
+    position:absolute;
+    width:22px; height:22px;
+    z-index:3;
+  }
+  .hero-frame::before{
+    top:-1px; left:-1px;
+    border-top:2px solid var(--amber);
+    border-left:2px solid var(--amber);
+  }
+  .hero-frame::after{
+    bottom:-1px; right:-1px;
+    border-bottom:2px solid var(--amber);
+    border-right:2px solid var(--amber);
+  }
+  .hero-frame-inner{
+    position:relative;
+    width:100%; height:100%;
+    overflow:hidden;
+    background:var(--bg-card);
+  }
+  .hero-frame-inner img{
+    width:100%; height:100%;
+    object-fit:cover;
+    object-position:center top;
+    filter:grayscale(28%) contrast(1.04);
+  }
+  .hero-frame-rec{
+    position:absolute; top:12px; left:12px;
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.62rem;
+    letter-spacing:0.05em;
+    color:var(--text);
+    background:rgba(17,21,27,0.55);
+    padding:4px 8px;
+    z-index:3;
+  }
+  .hero-frame-rec .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:#e15a4a;
+  }
+  .hero-frame-tc{
+    position:absolute; bottom:12px; right:12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.6rem;
+    color:var(--text);
+    background:rgba(17,21,27,0.55);
+    padding:4px 8px;
+    z-index:3;
+  }
+  .hero-frame-caption{
+    margin-top:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    color:var(--text-faint);
+    letter-spacing:0.04em;
+    text-align:center;
+  }
+  .hero-tag{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--teal);
+    font-size:0.8rem;
+    letter-spacing:0.08em;
+    margin-bottom:28px;
+  }
+  .hero h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:clamp(2.6rem, 8vw, 6rem);
+    line-height:0.98;
+    letter-spacing:-0.01em;
+    max-width:14ch;
+  }
+  .hero h1 .accent{color:var(--amber);}
+  .hero-sub{
+    margin-top:30px;
+    max-width:46ch;
+    font-size:1.08rem;
+    color:var(--text-dim);
+    font-weight:300;
+  }
+  .hero-meta{
+    margin-top:52px;
+    display:flex; gap:48px; flex-wrap:wrap;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.75rem;
+    color:var(--text-faint);
+  }
+  .hero-meta strong{
+    display:block; color:var(--text); font-family:'Work Sans',sans-serif; font-weight:500; font-size:0.95rem; margin-top:4px;
+  }
+  .hero-cta{
+    margin-top:56px;
+    display:flex; gap:18px; flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.04em;
+    padding:15px 30px;
+    border:1px solid var(--line-strong);
+    display:inline-flex; align-items:center; gap:10px;
+    transition:all 0.25s;
+  }
+  .btn-primary{
+    background:var(--amber);
+    color:#11151b;
+    border-color:var(--amber);
+    font-weight:500;
+  }
+  .btn-primary:hover, .btn-primary:focus-visible{
+    background:transparent; color:var(--amber);
+  }
+  .btn-ghost:hover, .btn-ghost:focus-visible{
+    border-color:var(--teal); color:var(--teal);
+  }
+
+  /* ===== About / summary ===== */
+  .about-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:60px;
+    align-items:start;
+  }
+  @media (max-width:820px){ .about-grid{grid-template-columns:1fr;} }
+  .about-lead{
+    font-family:'Oswald', sans-serif;
+    font-weight:500;
+    font-size:1.5rem;
+    line-height:1.4;
+    color:var(--text);
+  }
+  .about-lead .hl{color:var(--teal);}
+  .about-body p{color:var(--text-dim); margin-bottom:18px; font-size:0.98rem;}
+  .niche-tags{margin-top:26px; display:flex; flex-wrap:wrap; gap:10px;}
+  .niche-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.7rem;
+    letter-spacing:0.04em;
+    padding:7px 14px;
+    border:1px solid var(--line-strong);
+    color:var(--text-dim);
+    text-transform:uppercase;
+  }
+
+  /* ===== Skills as tracks ===== */
+  .tracks{border-top:1px solid var(--line);}
+  .track{
+    display:grid;
+    grid-template-columns:120px 200px 1fr;
+    gap:24px;
+    align-items:center;
+    padding:22px 0;
+    border-bottom:1px solid var(--line);
+  }
+  @media (max-width:720px){ .track{grid-template-columns:100px 1fr; row-gap:14px;} .track-bar-wrap{grid-column:1 / -1;} }
+  .track-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    color:var(--text-faint);
+  }
+  .track-name{
+    font-size:0.95rem;
+    font-weight:500;
+    color:var(--text);
+  }
+  .track-bar-wrap{position:relative; height:10px;}
+  .track-bar-bg{
+    position:absolute; inset:0;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+  }
+  .track-bar-fill{
+    position:absolute; top:0; left:0; bottom:0;
+    background:linear-gradient(90deg, var(--teal), var(--amber));
+    opacity:0.9;
+  }
+
+  /* ===== Tools ===== */
+  .tools-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+  }
+  @media (max-width:720px){ .tools-grid{grid-template-columns:1fr;} }
+  .tool-col{background:var(--bg); padding:34px 30px;}
+  .tool-col h3{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin-bottom:20px;
+  }
+  .tool-col ul{list-style:none;}
+  .tool-col li{
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:0.95rem;
+    color:var(--text-dim);
+  }
+  .tool-col li:last-child{border-bottom:none;}
+  .tool-col li strong{color:var(--text); font-weight:500;}
+
+  /* ===== Services ===== */
+  .services-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+  }
+  @media (max-width:720px){ .services-grid{grid-template-columns:1fr;} }
+  .service-card{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    padding:36px;
+  }
+  .service-card .num{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--teal);
+    font-size:0.75rem;
+    margin-bottom:16px;
+    display:block;
+  }
+  .service-card h3{
+    font-family:'Oswald', sans-serif;
+    text-transform:uppercase;
+    font-size:1.3rem;
+    margin-bottom:20px;
+    font-weight:600;
+  }
+  .service-card ul{list-style:none;}
+  .service-card li{
+    padding:9px 0 9px 20px;
+    position:relative;
+    color:var(--text-dim);
+    font-size:0.94rem;
+    border-top:1px solid var(--line);
+  }
+  .service-card li:first-child{border-top:none;}
+  .service-card li::before{
+    content:"—";
+    position:absolute; left:0; color:var(--amber);
+  }
+
+  /* ===== Experience ===== */
+  .exp-item{
+    display:grid;
+    grid-template-columns:200px 1fr;
+    gap:40px;
+    padding:36px 0;
+    border-bottom:1px solid var(--line);
+  }
+  @media (max-width:720px){ .exp-item{grid-template-columns:1fr; gap:12px;} }
+  .exp-time{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    color:var(--text-faint);
+  }
+  .exp-time .now{color:var(--teal);}
+  .exp-role h3{
+    font-family:'Oswald', sans-serif;
+    font-size:1.2rem;
+    text-transform:uppercase;
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .exp-role .place{color:var(--text-dim); font-size:0.9rem; margin-bottom:16px;}
+  .exp-role ul{list-style:none;}
+  .exp-role li{
+    padding:6px 0 6px 20px;
+    position:relative;
+    color:var(--text-dim);
+    font-size:0.94rem;
+  }
+  .exp-role li::before{content:"—"; position:absolute; left:0; color:var(--teal);}
+
+  /* ===== Featured projects ===== */
+  .proj-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:26px;
+  }
+  @media (max-width:900px){ .proj-grid{grid-template-columns:1fr;} }
+  .proj-card{
+    border:1px solid var(--line);
+    background:var(--bg-card);
+    overflow:hidden;
+    display:block;
+    transition:border-color 0.25s, transform 0.25s;
+  }
+  .proj-card:hover, .proj-card:focus-visible{
+    border-color:var(--amber);
+    transform:translateY(-4px);
+  }
+  .proj-thumb{
+    aspect-ratio:9/16;
+    width:100%;
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    background:#000;
+    max-height:520px;
+  }
+  .proj-video{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:contain;
+    background:#000;
+  }
+  .proj-thumb::after{
+    content:"";
+    position:absolute; inset:0;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(17,21,27,0) 60%, rgba(17,21,27,0.55) 100%);
+  }
+  .proj-play{
+    width:52px; height:52px;
+    border:1px solid rgba(238,241,244,0.5);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    z-index:3;
+    background:rgba(17,21,27,0.45);
+    transition:background 0.25s, border-color 0.25s, opacity 0.25s, transform 0.25s;
+    cursor:pointer;
+    position:relative;
+  }
+  .proj-card:hover .proj-play{ background:var(--amber); border-color:var(--amber);}
+  .proj-play svg{width:16px; height:16px; fill:var(--text); margin-left:2px;}
+  .proj-card:hover .proj-play svg{fill:#11151b;}
+  .proj-thumb.is-playing .proj-play,
+  .proj-thumb.is-playing .proj-tc{
+    opacity:0;
+    pointer-events:none;
+    transform:scale(0.9);
+  }
+  .proj-tc{
+    position:absolute; bottom:10px; left:12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.65rem;
+    color:rgba(238,241,244,0.85);
+    z-index:3;
+    transition:opacity 0.25s, transform 0.25s;
+  }
+  .proj-body{padding:20px 22px 24px;}
+  .proj-cat{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.65rem;
+    color:var(--amber);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:8px;
+  }
+  .proj-body h3{
+    font-family:'Oswald', sans-serif;
+    font-size:1.05rem;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .proj-body p{color:var(--text-dim); font-size:0.88rem;}
+
+  .proj-note{
+    margin-top:30px;
+    font-size:0.85rem;
+    color:var(--text-faint);
+    font-family:'JetBrains Mono', monospace;
+  }
+  .proj-note a{color:var(--teal); border-bottom:1px solid var(--teal);}
+
+  /* ===== Contact / footer ===== */
+  footer{
+    padding:120px 6vw 60px;
+    border-top:1px solid var(--line);
+  }
+  .contact-lead{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    text-transform:uppercase;
+    font-size:clamp(2rem, 6vw, 4rem);
+    line-height:1.05;
+    max-width:16ch;
+    margin-bottom:56px;
+  }
+  .contact-lead .accent{color:var(--amber);}
+  .contact-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:30px;
+    border-top:1px solid var(--line);
+    padding-top:40px;
+  }
+  @media (max-width:720px){ .contact-grid{grid-template-columns:1fr; gap:28px;} }
+  .contact-item .k{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    color:var(--text-faint);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:10px;
+  }
+  .contact-item .v{
+    font-size:1.05rem;
+    font-weight:500;
+  }
+  .contact-item a:hover, .contact-item a:focus-visible{color:var(--amber);}
+  .foot-bottom{
+    margin-top:70px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    color:var(--text-faint);
+    border-top:1px solid var(--line);
+    padding-top:24px;
+  }
+
+  .reveal{
+    opacity:1; transform:translateY(0);
+  }
+  html.js-ready .reveal{
+    opacity:0; transform:translateY(24px);
+    transition:opacity 0.7s ease, transform 0.7s ease;
+  }
+  html.js-ready .reveal.in{opacity:1; transform:translateY(0);}
+
+  a:focus-visible, button:focus-visible{
+    outline:2px solid var(--amber);
+    outline-offset:3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="playhead-track"><div class="playhead-fill" id="playheadFill"></div></div>
+
+<header>
+  <div class="logo">JAY <span>//</span> SIKARWAR</div>
+  <nav>
+    <a href="#about">About</a>
+    <a href="#work">Work</a>
+    <a href="#services">Services</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="hero-tag mono">// VIDEO EDITOR — INDIA</div>
+    <h1>Jay<br>Sikarwar<span class="accent">.</span></h1>
+    <p class="hero-sub">I cut stories that hold attention — short-form, talking-head and brand video, edited to keep every second earning the next one.</p>
+    <div class="hero-meta">
+      <div>Experience<strong>2+ years, multiple clients</strong></div>
+      <div>Focus<strong>Short-form · Talking-head · Corporate · Tech</strong></div>
+      <div>Based in<strong>India</strong></div>
+    </div>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#contact">Get in touch</a>
+    </div>
+  </div>
+  <div>
+    <div class="hero-frame">
+      <div class="hero-frame-inner">
+        <img src="profile.jpg" alt="Jay Sikarwar">
+      </div>
+    </div>
+    <div class="hero-frame-caption">JAY SIKARWAR</div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="eyebrow">ABOUT</div>
+  <div class="about-grid reveal">
+    <p class="about-lead">Editing for <span class="hl">2+ years</span>, working across multiple client channels — I'm the person who turns raw footage into something people actually finish watching.</p>
+    <div class="about-body">
+      <p>I work end-to-end on video post-production: structuring the edit for pacing and retention, building clean motion graphics, and finishing with color grading and sound design. Comfortable moving between fast short-form cuts and longer talking-head and corporate pieces.</p>
+      <p>I've edited across a mix of niches, learning the pacing and visual language each one needs rather than applying one style everywhere.</p>
+      <div class="niche-tags">
+        <span class="niche-tag">Short-form / Reels</span>
+        <span class="niche-tag">Talking Head / Vlogs</span>
+        <span class="niche-tag">Corporate / Brand</span>
+        <span class="niche-tag">Tech</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="skills">
+  <div class="eyebrow">SKILLS</div>
+  <h2 class="reveal">What I edit with</h2>
+  <div class="tracks reveal">
+    <div class="track">
+      <div class="track-label">TRACK 01</div>
+      <div class="track-name">Short-Form Editing</div>
+      <div class="track-bar-wrap">
+        <div class="track-bar-bg"></div>
+        <div class="track-bar-fill" style="width:92%"></div>
+      </div>
+    </div>
+    <div class="track">
+      <div class="track-label">TRACK 02</div>
+      <div class="track-name">Long-Form / Talking-Head Editing</div>
+      <div class="track-bar-wrap">
+        <div class="track-bar-bg"></div>
+        <div class="track-bar-fill" style="width:85%"></div>
+      </div>
+    </div>
+    <div class="track">
+      <div class="track-label">TRACK 03</div>
+      <div class="track-name">Motion Graphics (DaVinci Resolve)</div>
+      <div class="track-bar-wrap">
+        <div class="track-bar-bg"></div>
+        <div class="track-bar-fill" style="width:88%"></div>
+      </div>
+    </div>
+    <div class="track">
+      <div class="track-label">TRACK 04</div>
+      <div class="track-name">Color Grading (DaVinci Resolve)</div>
+      <div class="track-bar-wrap">
+        <div class="track-bar-bg"></div>
+        <div class="track-bar-fill" style="width:75%"></div>
+      </div>
+    </div>
+    <div class="track">
+      <div class="track-label">TRACK 05</div>
+      <div class="track-name">Retention Editing &amp; Pacing</div>
+      <div class="track-bar-wrap">
+        <div class="track-bar-bg"></div>
+        <div class="track-bar-fill" style="width:80%"></div>
+      </div>
+    </div>
+    <div class="track">
+      <div class="track-label">TRACK 06</div>
+      <div class="track-name">Sound Design</div>
+      <div class="track-bar-wrap">
+        <div class="track-bar-bg"></div>
+        <div class="track-bar-fill" style="width:70%"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="eyebrow">TOOLS</div>
+  <h2 class="reveal">Software</h2>
+  <div class="tools-grid reveal">
+    <div class="tool-col">
+      <h3>Advanced</h3>
+      <ul>
+        <li><strong>DaVinci Resolve</strong> — primary edit, color grading &amp; assembly</li>
+      </ul>
+    </div>
+    <div class="tool-col">
+      <h3>Intermediate</h3>
+      <ul>
+        <li><strong>Photoshop</strong> — thumbnails, retouching</li>
+        <li><strong>Illustrator</strong> — graphic assets</li>
+      </ul>
+    </div>
+    <div class="tool-col">
+      <h3>Workflow</h3>
+      <ul>
+        <li><strong>Canva</strong> — quick graphics, thumbnails</li>
+        <li><strong>Frame.io</strong> — client review</li>
+        <li><strong>Notion</strong> — project tracking</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="services">
+  <div class="eyebrow">SERVICES</div>
+  <h2 class="reveal">How I can help</h2>
+  <div class="services-grid reveal">
+    <div class="service-card">
+      <span class="num mono">01</span>
+      <h3>Pre-Production</h3>
+      <ul>
+        <li>Content structure &amp; pacing planning</li>
+        <li>Footage review &amp; selects</li>
+        <li>Asset &amp; template prep</li>
+      </ul>
+    </div>
+    <div class="service-card">
+      <span class="num mono">02</span>
+      <h3>Post-Production</h3>
+      <ul>
+        <li>Short-form &amp; long-form editing</li>
+        <li>Motion graphics &amp; 2D animation</li>
+        <li>Color grading &amp; sound design</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="experience">
+  <div class="eyebrow">EXPERIENCE</div>
+  <h2 class="reveal">Work history</h2>
+  <div class="reveal">
+    <div class="exp-item">
+      <div class="exp-time mono">2024 — <span class="now">PRESENT</span></div>
+      <div class="exp-role">
+        <h3>Freelance Video Editor</h3>
+        <div class="place">Self-employed · Remote, India</div>
+        <ul>
+          <li>Edited short-form and long-form video across multiple Brands/client channels in tech, corporate, and talking-head content</li>
+          <li>Built motion graphics and 2D animation elements in DaVinci Resolve</li>
+          <li>Handled color grading and sound design in DaVinci Resolve</li>
+          <li>Managed client review and delivery workflow via Frame.io and Notion</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="eyebrow">FEATURED WORK</div>
+  <h2 class="reveal">Recent projects</h2>
+  <!-- Keep every video + poster jpg file listed below in the same folder as this HTML file. -->
+  <div class="proj-grid reveal">
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb1">
+        <video class="proj-video" id="video1" poster="real_estate_poster.jpg" preload="none" playsinline>
+          <source src="V3.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video1','thumb1')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:42:13</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Real Estate</div>
+        <h3>Real Estate Video</h3>
+        <p>Property walkthrough edit with clean cuts and pacing designed to showcase the space and hold viewer attention start to finish.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb2">
+        <video class="proj-video" id="video2" poster="brand-agency_poster.jpg" preload="none" playsinline>
+          <source src="brand-agency.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video2','thumb2')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:28:05</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Brand Agency</div>
+        <h3>Brand Agency Video</h3>
+        <p>Agency-style promotional edit built around clean pacing and a confident visual rhythm for brand storytelling.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb3">
+        <video class="proj-video" id="video3" poster="ad-video_poster.jpg" preload="none" playsinline>
+          <source src="ad-video.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video3','thumb3')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:44:12</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Advertisement</div>
+        <h3>Ad Video</h3>
+        <p>Fast-paced advertisement edit built to grab attention early and hold it through to the call to action.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb4">
+        <video class="proj-video" id="video4" poster="colour-graded_poster.jpg" preload="none" playsinline>
+          <source src="colour-graded.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video4','thumb4')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:28:08</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Color Grading</div>
+        <h3>Colour Graded Edit</h3>
+        <p>Full color grade pass in DaVinci Resolve to give the footage a consistent, polished cinematic look.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb5">
+        <video class="proj-video" id="video5" poster="ad-campaign_poster.jpg" preload="none" playsinline>
+          <source src="ad-campaign.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video5','thumb5')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:29:18</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Ad Campaign</div>
+        <h3>Ad Campaign Film</h3>
+        <p>Campaign edit balancing brand messaging with quick, retention-focused cuts across the full runtime.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb6">
+        <video class="proj-video" id="video6" poster="motion-design_poster.jpg" preload="none" playsinline>
+          <source src="motion-design.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video6','thumb6')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:43:01</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Motion Design</div>
+        <h3>Motion Design Short</h3>
+        <p>Short-form piece built around custom motion graphics and animated text in DaVinci Resolve.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb7">
+        <video class="proj-video" id="video7" poster="short-video_poster.jpg" preload="none" playsinline>
+          <source src="short-video.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video7','thumb7')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:41:16</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Short-Form</div>
+        <h3>Short Video Edit</h3>
+        <p>Quick, retention-focused short-form cut with tight pacing built to keep viewers watching to the end.</p>
+      </div>
+    </div>
+
+    <div class="proj-card">
+      <div class="proj-thumb" id="thumb8">
+        <video class="proj-video" id="video8" poster="stock-brand_poster.jpg" preload="none" playsinline>
+          <source src="stock-brand.mp4" type="video/mp4">
+        </video>
+        <button class="proj-play" aria-label="Play video" onclick="playProjVideo('video8','thumb8')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <div class="proj-tc">00:00:14:12</div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-cat">Stock Footage</div>
+        <h3>Stock Clips — Brand Edit</h3>
+        <p>Brand edit built entirely from licensed stock clips, cut and paced to tell a coherent story without original footage.</p>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+<footer id="contact">
+  <div class="contact-lead reveal">Got a project?<br>Let's <span class="accent">cut it together.</span></div>
+  <div class="contact-grid reveal">
+    <div class="contact-item">
+      <div class="k mono">Email</div>
+      <div class="v"><a href="mailto:jaypratapsinghsikarwar564@gmail.com">jaypratapsinghsikarwar564@gmail.com</a></div>
+    </div>
+    <div class="contact-item">
+      <div class="k mono">Phone</div>
+      <div class="v"><a href="tel:+917999152081">+91 79991 52081</a></div>
+    </div>
+    <div class="contact-item">
+      <div class="k mono">Instagram</div>
+      <div class="v"><a href="https://www.instagram.com/jay_pratap_sikarwar_/" target="_blank" rel="noopener">@jay_pratap_sikarwar_</a></div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 JAY SIKARWAR</span>
+    <span>INDIA</span>
+  </div>
+</footer>
+
+<script>
+  function playProjVideo(videoId, thumbId){
+    const video = document.getElementById(videoId);
+    const thumb = document.getElementById(thumbId);
+    video.controls = true;
+    video.play();
+    thumb.classList.add('is-playing');
+  }
+  document.querySelectorAll('.proj-video').forEach(v=>{
+    v.addEventListener('pause', ()=> v.closest('.proj-thumb').classList.remove('is-playing'));
+    v.addEventListener('ended', ()=> v.closest('.proj-thumb').classList.remove('is-playing'));
+    v.addEventListener('play', ()=> v.closest('.proj-thumb').classList.add('is-playing'));
+  });
+</script>
+
+<script>
+  // Playhead scroll progress bar
+  const fill = document.getElementById('playheadFill');
+
+  function onScroll(){
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop/docHeight) : 0;
+    fill.style.width = (pct*100).toFixed(2)+'%';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  // Reveal on scroll
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:0.15});
+
+  // Only enable the fade/animate behavior once we've confirmed JS + IntersectionObserver work.
+  // This avoids content staying invisible in previews/webviews that skip JS execution.
+  document.documentElement.classList.add('js-ready');
+  revealEls.forEach(el=>io.observe(el));
+</script>
+
+</body>
+</html>
